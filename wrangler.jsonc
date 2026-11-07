@@ -1,0 +1,14 @@
+{
+  "$schema": "./polka-studio/node_modules/wrangler/config-schema.json",
+  "name": "polka",
+  "main": "./polka-studio/dist/server/index.js",
+  "compatibility_date": "2026-05-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "no_bundle": true,
+  "rules": [
+    { "type": "ESModule", "globs": ["**/*.js", "**/*.mjs"] }
+  ],
+  "assets": {
+    "directory": "./polka-studio/dist/client"
+  }
+}

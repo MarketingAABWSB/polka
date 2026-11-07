@@ -224,7 +224,7 @@ main{max-width:1240px;margin:auto;padding:0 24px}.intro{display:flex;justify-con
 .studio-intro.effects-intro h1 { margin: 0; font-size: 24px; line-height: 1.2; letter-spacing: -.8px; }
 .effects-workspace { min-height: calc(100dvh - 150px); }
 .effects-workspace .camera-shell { width: min(100%, calc((100dvh - 165px) * 1.6 + 18px)); max-width: 1180px; padding: 8px; }
-.effects-workspace .camera-viewport { aspect-ratio: 8 / 5; }
+.effects-workspace .camera-viewport { aspect-ratio: 8 / 5; container: camera / inline-size; }
 .effects-workspace .camera-source-action { display: flex; align-items: center; gap: 5px; margin-right: 37px; color: white; font-size: 9px; text-shadow: 0 1px 5px #0008; pointer-events: auto; }
 .effects-workspace.effects-browsing .viewport-top { display: none; }
 .camera-controls { position: absolute; inset: auto 0 0; z-index: 6; display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 14px; padding: 32px 18px 18px; background: linear-gradient(transparent, #211c1966); }
@@ -261,6 +261,17 @@ main{max-width:1240px;margin:auto;padding:0 24px}.intro{display:flex;justify-con
 .effects-workspace .camera-shell:fullscreen .camera-viewport { flex: 1; height: auto; min-height: 0; aspect-ratio: auto; }
 .effects-workspace .camera-shell:fullscreen .camera-controls { padding: 40px 30px 28px; }
 .effects-workspace .camera-shell:fullscreen .effects-browser { padding-bottom: 100px; }
+@container camera (max-width: 560px) {
+  .camera-controls { grid-template-columns: 36px minmax(0, 1fr) 46px; gap: 8px; padding: 27px 12px 12px; }
+  .camera-edit-toggle { width: 36px; height: 44px; }
+  .filter-stepper { grid-template-columns: 32px minmax(0, 1fr) 32px; gap: 5px; width: 100%; }
+  .effect-arrow { height: 44px; }
+  .filter-current { min-height: 44px; padding: 6px 3px; }
+  .filter-current strong { font-size: 10px; }
+  .filter-current > span { font-size: 6px; letter-spacing: .3px; }
+  .effects-workspace .camera-shutter { width: 46px; min-width: 46px; height: 44px; min-height: 44px; padding: 8px; }
+  .effects-workspace .camera-shutter > span { display: none; }
+}
 @media (max-width: 760px) {
   .studio-intro.effects-intro { padding: 12px 0 16px; }
   .studio-intro.effects-intro h1 { font-size: 24px; }
@@ -291,4 +302,8 @@ main{max-width:1240px;margin:auto;padding:0 24px}.intro{display:flex;justify-con
   .effects-workspace .edit-panel { width: 100%; }
   .effects-workspace .camera-shell:fullscreen .camera-controls { padding: 30px 14px 18px; }
   .effects-workspace .camera-shell:fullscreen .effects-browser { padding-bottom: 78px; }
+}
+@media (max-width: 760px) and (max-height: 500px) {
+  .effects-workspace .camera-shell { width: min(100%, calc((100dvh - 165px) * 1.6 + 14px)); }
+  .effects-workspace .camera-viewport { aspect-ratio: 8 / 5; }
 }

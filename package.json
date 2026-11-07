@@ -9,6 +9,7 @@
     "postinstall": "node scripts/install-app.mjs",
     "dev": "npm --prefix polka-studio run dev",
     "build": "npm --prefix polka-studio run build",
-    "start": "npm --prefix polka-studio run start"
+    "start": "npm --prefix polka-studio run start",
+    "deploy": "node polka-studio/node_modules/wrangler/bin/wrangler.js deploy --config wrangler.jsonc"
   }
 }

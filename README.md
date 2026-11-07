@@ -47,3 +47,19 @@ npm run dev
 An interrupted install can cause `ERR_MODULE_NOT_FOUND` for Vinext; completing `npm install` restores the missing packages. Administrator access is not normally needed.
 
 For app features and implementation details, see [polka-studio/README.md](polka-studio/README.md).
+
+## Deploy to Cloudflare Workers
+
+In your Worker's **Settings > Build**, use these settings for the GitHub repository:
+
+| Setting | Value |
+| --- | --- |
+| Root directory | `/` (repository root) |
+| Build command | `npm run build` |
+| Deploy command | `npm run deploy` |
+
+The root `wrangler.jsonc` points to the built Worker at `polka-studio/dist/server/index.js` and browser assets in `polka-studio/dist/client`. This is a server-backed Worker; it does not produce a static `index.html` for Pages.
+
+The Worker name in `wrangler.jsonc` is `polka`. If your existing Cloudflare Worker has another name, change `name` to match it before deploying.
+
+To deploy manually after signing in to Cloudflare, run `npm run build` and then `npm run deploy`. To validate the upload without publishing, run `npm run deploy -- --dry-run`.
