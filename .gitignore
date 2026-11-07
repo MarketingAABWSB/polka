@@ -1,0 +1,22 @@
+# Dependencies and build output
+node_modules/
+dist/
+.next/
+.vinext/
+coverage/
+*.tsbuildinfo
+
+# Local configuration and tool state
+.env*
+.dev.vars*
+*.pem
+.wrangler/
+.sites-runtime/
+.agents/
+.codex/
+outputs/
+
+# Logs and OS metadata
+*.log
+.DS_Store
+Thumbs.db

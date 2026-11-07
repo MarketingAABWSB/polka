@@ -1,0 +1,14 @@
+{
+  "name": "polka-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "postinstall": "node scripts/install-app.mjs",
+    "dev": "npm --prefix polka-studio run dev",
+    "build": "npm --prefix polka-studio run build",
+    "start": "npm --prefix polka-studio run start"
+  }
+}
