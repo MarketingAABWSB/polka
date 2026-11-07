@@ -22,6 +22,8 @@ Open the printed local address (normally `http://127.0.0.1:5173`). Camera access
 - No timer, 3-second countdown, or 5-second countdown for each shot.
 - Six frame colors, optional polka dots, and a custom caption.
 - High-resolution PNG downloads with filters baked in.
+- On phones, the camera and effects browser fill the available screen, with clearly labeled Edit strip and Download actions below.
+- Portrait captures and downloads keep the camera's framing, including when rotating during a photo round.
 - A gallery for reviewing the current round and removing individual photos.
 - Responsive layout, accessible controls and dialogs, and reduced-motion support.
 - Canvas 2D color-filter fallback when WebGL is unavailable. Fisheye and Swirl require WebGL for geometric distortion.

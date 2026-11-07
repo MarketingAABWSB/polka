@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowDownToLine, ArrowRight, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, FlipHorizontal2, Heart, Image as ImageIcon, Loader2, LockKeyhole, Maximize, ShieldCheck, SlidersHorizontal, Sparkles, Timer, Trash2, Volume2, VolumeX, X } from "lucide-react";
+import { ArrowDownToLine, ArrowRight, Camera, Check, ChevronLeft, ChevronRight, CircleHelp, FlipHorizontal2, Heart, Image as ImageIcon, Loader2, LockKeyhole, Maximize, ShieldCheck, SlidersHorizontal, Timer, Trash2, Volume2, VolumeX, X } from "lucide-react";
 import { FILTERS, usePhotobooth, type FilterId } from "@/lib/use-photobooth";
 import { downloadStrip } from "@/lib/download-strip";
 
@@ -21,7 +21,9 @@ function PolkaCamera() {
 }
 
 export default function Home() {
-  const booth = usePhotobooth();
+  const [cameraAspect, setCameraAspect] = useState(1.6);
+  const [roundAspect, setRoundAspect] = useState(1.6);
+  const booth = usePhotobooth({ aspectRatio: cameraAspect });
   const [layout, setLayout] = useState<Layout>("strip");
   const [frame, setFrame] = useState(COLORS[0].value);
   const [dots, setDots] = useState(true);
@@ -54,6 +56,21 @@ export default function Home() {
   const mobileToolsOpen = mobileTools && editOpen && !filtersOpen;
   const effectPages = Math.ceil(EFFECTS.length / EFFECTS_PER_PAGE);
   const pageEffects = EFFECTS.slice(effectPage * EFFECTS_PER_PAGE, (effectPage + 1) * EFFECTS_PER_PAGE);
+  const previewHeight = Math.round(180 * booth.frameSize.height / booth.frameSize.width);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const measure = () => {
+      const { width, height } = viewport.getBoundingClientRect();
+      const ratio = window.matchMedia("(max-width: 760px), (hover: none) and (max-height: 500px)").matches && height > 0 ? width / height : 1.6;
+      setCameraAspect(current => Math.abs(current - ratio) > .005 ? ratio : current);
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(viewport);
+    measure();
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!filtersOpen || !active) return;
@@ -74,7 +91,7 @@ export default function Home() {
   }, [filtersOpen, active, effectPage, booth.renderEffectPreview]);
 
   useEffect(() => {
-    const media = window.matchMedia("(max-width: 760px)");
+    const media = window.matchMedia("(max-width: 760px), (hover: none) and (max-height: 500px)");
     const update = () => setMobileTools(media.matches);
     update();
     media.addEventListener("change", update);
@@ -89,13 +106,11 @@ export default function Home() {
       const target = opened === "filters"
         ? document.querySelector<HTMLButtonElement>(".effect-tile")
         : mobileTools
-          ? toolsRef.current?.querySelector<HTMLButtonElement>('[data-panel-toggle="edit"]')
+          ? toolsRef.current?.querySelector<HTMLButtonElement>(".tools-sheet-bar .panel-close")
           : document.querySelector<HTMLButtonElement>("#edit-panel .panel-close");
       target?.focus({ preventScroll: true });
     } else if (closed) {
-      const target = mobileTools && editOpen
-        ? toolsRef.current?.querySelector<HTMLButtonElement>(`[data-panel-toggle="${closed}"]`)
-        : document.querySelector<HTMLButtonElement>(closed === "filters" ? ".filter-current" : ".camera-edit-toggle");
+      const target = document.querySelector<HTMLButtonElement>(closed === "filters" ? ".filter-current" : ".camera-edit-toggle");
       target?.focus({ preventScroll: true });
     }
   }, [openPanels, mobileTools, editOpen]);
@@ -174,7 +189,7 @@ export default function Home() {
     setOpenPanels(current => current.includes(next) ? current.filter(name => name !== next) : [...current, next]);
   }
   function closePanel(name: ToolPanel) { setOpenPanels(current => current.filter(open => open !== name)); }
-  function takePhotos() { booth.clearPhotos(); void booth.capture(count, delay); }
+  function takePhotos() { setRoundAspect(booth.frameSize.width / booth.frameSize.height); booth.clearPhotos(); void booth.capture(count, delay); }
   function cycleEffect(direction: number) {
     const index = EFFECTS.findIndex(effect => effect.id === booth.filterId);
     booth.setFilterId(EFFECTS[(index + direction + EFFECTS.length) % EFFECTS.length].id);
@@ -194,7 +209,7 @@ export default function Home() {
         <h1>More smiles. <em>Less serious.</em></h1>
       </section>
 
-      <div className={`studio-workspace effects-workspace ${editOpen ? "edit-is-open" : ""} ${filtersOpen ? "effects-browsing" : ""}`}>
+      <div className={`studio-workspace effects-workspace ${editOpen ? "edit-is-open" : ""} ${filtersOpen ? "effects-browsing" : ""}`} data-portrait-round={roundAspect < 1} style={{ "--shot-aspect": roundAspect < 1 ? roundAspect : 4 / 3 } as React.CSSProperties}>
 
         <section className="centered-booth" aria-label="Photobooth camera">
           <div className="camera-shell" ref={cameraShellRef}>
@@ -204,10 +219,10 @@ export default function Home() {
               <div className="viewport-top"><span className={`camera-state ${active ? "state-live" : ""}`}><i />{booth.cameraStatus === "demo" ? "DEMO MODE" : booth.cameraStatus === "ready" ? "YOU'RE LIVE" : "CAMERA OFF"}</span>{active ? <button className="camera-source-action" onClick={() => booth.cameraStatus === "demo" ? void booth.startCamera() : booth.stopCamera()} disabled={booth.isCapturing}>{booth.cameraStatus === "demo" ? "Use my camera" : "Turn camera off"}<ArrowRight size={12} /></button> : <span className="viewport-label">A LITTLE MOMENT, ALL YOURS.</span>}</div>
               {!active && <div className="camera-welcome"><PolkaCamera /><h2>{booth.cameraStatus === "error" ? "Let's try that again." : "Oh, hey there, good lookin’."}</h2><p>{booth.error || "Your next favorite memory starts right here."}</p><button className="primary-button enable-button" disabled={booth.cameraStatus === "loading"} onClick={() => void booth.startCamera()}>{booth.cameraStatus === "loading" ? <Loader2 size={17} className="spin" /> : <Camera size={18} />}{booth.cameraStatus === "loading" ? "Connecting your camera…" : booth.cameraStatus === "error" ? "Try camera again" : "Enable camera"}<ArrowRight size={17} /></button><button className="demo-link" disabled={booth.cameraStatus === "loading"} onClick={() => void booth.useDemo()}>Just looking? Try the demo <ArrowRight size={12} /></button></div>}
               <div id="filters-panel" className="effects-browser" hidden={!filtersOpen} role="group" aria-label="More effects">
-                <div className="effects-grid">{pageEffects.map(effect => <button className={`effect-tile ${booth.filterId === effect.id ? "effect-selected" : ""}`} key={effect.id} aria-label={effect.name} aria-pressed={booth.filterId === effect.id} onClick={() => chooseEffect(effect.id)} disabled={booth.isCapturing} data-effect-id={effect.id}><canvas className="effect-preview" width={240} height={150} ref={element => { if (element) effectCanvasRefs.current.set(effect.id, element); else effectCanvasRefs.current.delete(effect.id); }} aria-hidden="true" /><span>{effect.name}</span>{booth.filterId === effect.id && <i className="effect-selected-check"><Check size={12} /></i>}</button>)}</div>
+                <div className="effects-grid">{pageEffects.map(effect => <button className={`effect-tile ${booth.filterId === effect.id ? "effect-selected" : ""}`} key={effect.id} aria-label={effect.name} aria-pressed={booth.filterId === effect.id} onClick={() => chooseEffect(effect.id)} disabled={booth.isCapturing} data-effect-id={effect.id}><canvas className="effect-preview" width={180} height={previewHeight} ref={element => { if (element) effectCanvasRefs.current.set(effect.id, element); else effectCanvasRefs.current.delete(effect.id); }} aria-hidden="true" /><span>{effect.name}</span>{booth.filterId === effect.id && <i className="effect-selected-check"><Check size={12} /></i>}</button>)}</div>
               </div>
               <div className={`camera-controls ${active ? "" : "controls-idle"}`}>
-                <button className={`camera-edit-toggle ${editOpen ? "control-active" : ""}`} data-panel-toggle="edit" aria-label="Edit strip" aria-expanded={editOpen} aria-controls="edit-panel" onClick={() => void togglePanel("edit")} disabled={booth.isCapturing} title="Edit strip"><SlidersHorizontal size={20} /></button>
+                <span className="camera-controls-spacer" aria-hidden="true" />
                 <div className="filter-stepper">
                   <button className="effect-arrow" aria-label={filtersOpen ? "Previous effects page" : "Previous effect"} onClick={() => filtersOpen ? changeEffectPage(-1) : cycleEffect(-1)} disabled={!active || booth.isCapturing}><ChevronLeft size={23} /></button>
                   <button className="filter-current" data-panel-toggle="filters" aria-label={filtersOpen ? "Back to camera" : "More effects"} aria-expanded={filtersOpen} aria-controls="filters-panel" onClick={toggleEffects} disabled={!active || booth.isCapturing}><strong>{filtersOpen ? "Back to camera" : selectedFilter.name}</strong><span>{filtersOpen ? `${effectPage + 1} / ${effectPages} · ${EFFECTS.length} effects` : "More effects"}</span></button>
@@ -222,16 +237,25 @@ export default function Home() {
             </div>
 
           </div>
+          <div className="booth-actions">
+            <div className="round-status" role="status">
+              <span className={`round-thumbnail ${booth.photos.length ? "has-photo" : ""}`}>{booth.photos.length ? <img src={booth.photos[0]} alt="" /> : <ImageIcon size={19} />}</span>
+              <div><strong>{booth.isCapturing ? `Taking photo ${Math.min(booth.captureProgress + 1, count)} of ${count}` : booth.photos.length ? "Your photos are ready" : "A little moment, all yours"}</strong><span>{booth.isCapturing ? "Stay right there. You're doing great." : booth.photos.length ? `${visiblePhotos.length} ${visiblePhotos.length === 1 ? "photo" : "photos"} · Edit your strip or save it now` : `${count === 1 ? "Single photo" : "4 photos"} · ${delay ? `${delay}-second timer` : "No timer"}`}</span></div>
+            </div>
+            <div className="booth-action-buttons">
+              <button className={`camera-edit-toggle action-edit ${editOpen ? "control-active" : ""}`} data-panel-toggle="edit" aria-label="Edit strip" aria-expanded={editOpen} aria-controls="edit-panel" onClick={() => void togglePanel("edit")} disabled={booth.isCapturing}><SlidersHorizontal size={17} /><span>{editOpen ? "Done editing" : "Edit strip"}</span></button>
+              <button className="action-download" aria-label="Download photos" disabled={!booth.photos.length || downloading || booth.isCapturing} onClick={() => void savePhotos()}>{downloading ? <Loader2 size={17} className="spin" /> : <ArrowDownToLine size={17} />}<span>{downloading ? "Saving…" : "Download"}</span></button>
+            </div>
+          </div>
           <p className="capture-note" role="status">{booth.isCapturing ? `Making magic… ${booth.captureProgress} of ${count} snaps.` : <><LockKeyhole size={11} />Your camera. Your photos. Always private.</>}</p>
         </section>
 
-        {mobileToolsOpen && <div className="tools-backdrop" onClick={() => setOpenPanels([])} aria-hidden="true" />}
+        {mobileToolsOpen && <div className="tools-backdrop" onClick={() => closePanel("edit")} aria-hidden="true" />}
 
-        <div className={`tool-panels ${filtersOpen ? "tools-with-effects" : ""}`} ref={toolsRef} hidden={!editOpen} role={mobileToolsOpen ? "dialog" : undefined} aria-modal={mobileToolsOpen ? true : undefined} aria-label={mobileToolsOpen ? "Photobooth tools" : undefined}>
+        <div className={`tool-panels ${filtersOpen ? "tools-with-effects" : ""}`} ref={toolsRef} hidden={!editOpen} role={mobileToolsOpen ? "dialog" : undefined} aria-modal={mobileToolsOpen ? true : undefined} aria-label={mobileToolsOpen ? "Edit your strip" : undefined}>
           <div className="tools-sheet-bar">
-            <button className={`tool-toggle ${filtersOpen ? "tool-open" : ""}`} data-panel-toggle="filters" aria-label="Toggle effects browser" aria-expanded={filtersOpen} aria-controls="filters-panel" onClick={toggleEffects} disabled={!active || booth.isCapturing}><Sparkles size={15} />Effects<ChevronDown size={12} /></button>
-            <button className={`tool-toggle ${editOpen ? "tool-open" : ""}`} data-panel-toggle="edit" aria-label="Toggle editing panel" aria-expanded={editOpen} aria-controls="edit-panel" onClick={() => void togglePanel("edit")}><SlidersHorizontal size={15} />Edit strip<ChevronDown size={12} /></button>
-            <button className="panel-close" aria-label="Close tools" onClick={() => setOpenPanels([])}><X size={18} /></button>
+            <div><span>MAKE IT YOURS</span><h2>Edit your strip</h2></div>
+            <button className="panel-close" aria-label="Close editor" onClick={() => closePanel("edit")}><X size={18} /></button>
           </div>
           <div className="tool-panels-scroll">
 

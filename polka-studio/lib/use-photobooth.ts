@@ -27,10 +27,17 @@ export type CameraStatus = "idle" | "loading" | "ready" | "demo" | "error";
 
 const WIDTH = 960;
 const HEIGHT = 600;
-type FrameSettings = { filterId: FilterId; mirror: boolean };
+type FrameSize = { width: number; height: number };
+type FrameSettings = FrameSize & { filterId: FilterId; mirror: boolean };
 type Source = HTMLVideoElement | HTMLImageElement;
 type PendingWait = { timer: ReturnType<typeof setTimeout>; finish: (active: boolean) => void };
 type FxSurface = { canvas: FxCanvas | null; texture: FxTexture | null; width: number; height: number };
+
+function sizeForAspect(aspectRatio: number): FrameSize {
+  const ratio = Number.isFinite(aspectRatio) ? Math.max(0.4, Math.min(4, aspectRatio)) : WIDTH / HEIGHT;
+  const width = ratio < 1 ? 720 : WIDTH;
+  return { width, height: Math.round(width / ratio) };
+}
 
 function applyFilter(canvas: FxCanvas, filterId: FilterId, width: number, height: number) {
   switch (filterId) {
@@ -217,7 +224,7 @@ function cameraError(reason: unknown) {
   return "We couldn’t start your camera. Check your browser’s camera settings, or try the demo.";
 }
 
-export function usePhotobooth() {
+export function usePhotobooth({ aspectRatio = WIDTH / HEIGHT }: { aspectRatio?: number } = {}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const renderCanvasRef = useRef<HTMLCanvasElement>(null);
   const [cameraStatus, setCameraStatus] = useState<CameraStatus>("idle");
@@ -229,6 +236,7 @@ export function usePhotobooth() {
   const [flash, setFlash] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const [captureProgress, setCaptureProgress] = useState(0);
+  const [frameSize, setFrameSize] = useState<FrameSize>(() => sizeForAspect(aspectRatio));
 
   const mountedRef = useRef(false);
   const lifecycleRef = useRef(0);
@@ -242,11 +250,23 @@ export function usePhotobooth() {
   const previewFxRef = useRef<FxSurface>({ canvas: null, texture: null, width: 0, height: 0 });
   const fxFactoryRef = useRef<(() => FxCanvas) | null>(null);
   const previewFxAttemptedRef = useRef(false);
-  const frameSettingsRef = useRef<FrameSettings>({ filterId: "original", mirror: true });
+  const frameSettingsRef = useRef<FrameSettings>({ filterId: "original", mirror: true, ...frameSize });
   const frozenSettingsRef = useRef<FrameSettings | null>(null);
   const captureRequestRef = useRef(0);
   const captureBusyRef = useRef(false);
   const waitsRef = useRef(new Set<PendingWait>());
+
+  const syncFrameSize = useCallback(() => {
+    const { width, height } = frozenSettingsRef.current ?? frameSettingsRef.current;
+    setFrameSize((current) => current.width === width && current.height === height ? current : { width, height });
+  }, []);
+
+  useEffect(() => {
+    const size = sizeForAspect(aspectRatio);
+    frameSettingsRef.current.width = size.width;
+    frameSettingsRef.current.height = size.height;
+    syncFrameSize();
+  }, [aspectRatio, syncFrameSize]);
 
   const setFilterId: Dispatch<SetStateAction<FilterId>> = useCallback((value) => {
     const next = typeof value === "function" ? value(frameSettingsRef.current.filterId) : value;
@@ -292,11 +312,12 @@ export function usePhotobooth() {
     }
     waitsRef.current.clear();
     if (mountedRef.current) {
+      syncFrameSize();
       setCountdown(null);
       setIsCapturing(false);
       setFlash(false);
     }
-  }, []);
+  }, [syncFrameSize]);
 
   const renderFrame = useCallback(() => {
     const source = sourceRef.current;
@@ -304,9 +325,10 @@ export function usePhotobooth() {
     if (!source || !output) return false;
     const raw = rawCanvasRef.current ?? document.createElement("canvas");
     rawCanvasRef.current = raw;
-    if (output.width !== WIDTH || output.height !== HEIGHT) { output.width = WIDTH; output.height = HEIGHT; }
     const settings = frozenSettingsRef.current ?? frameSettingsRef.current;
-    if (!drawSourceFrame(source, raw, settings.mirror, WIDTH, HEIGHT)) return false;
+    const { width, height } = settings;
+    if (output.width !== width || output.height !== height) { output.width = width; output.height = height; }
+    if (!drawSourceFrame(source, raw, settings.mirror, width, height)) return false;
     return drawEffectFrame(raw, output, settings.filterId, fxRef.current);
   }, []);
 
@@ -489,12 +511,13 @@ export function usePhotobooth() {
       if (mountedRef.current && captureRequestRef.current === request) {
         captureBusyRef.current = false;
         frozenSettingsRef.current = null;
+        syncFrameSize();
         setIsCapturing(false);
         setCountdown(null);
         setFlash(false);
       }
     }
-  }, [renderFrame, waitForCapture]);
+  }, [renderFrame, syncFrameSize, waitForCapture]);
 
   const clearPhotos = useCallback(() => {
     cancelCapture();
@@ -508,7 +531,7 @@ export function usePhotobooth() {
 
   return {
     cameraStatus, error, filterId, setFilterId, mirror, setMirror,
-    countdown, isCapturing, flash, photos, captureProgress,
+    countdown, isCapturing, flash, photos, captureProgress, frameSize,
     videoRef, renderCanvasRef, renderEffectPreview, startCamera, useDemo, stopCamera,
     capture, clearPhotos, removePhoto,
   };

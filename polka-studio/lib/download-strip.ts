@@ -104,7 +104,10 @@ export async function downloadStrip(
 
   const images = await Promise.all(photos.map(loadPhoto));
   const photoWidth = 1080;
-  const photoHeight = 810;
+  const firstPhoto = images[0];
+  const photoHeight = firstPhoto.naturalHeight > firstPhoto.naturalWidth
+    ? Math.round(photoWidth * firstPhoto.naturalHeight / firstPhoto.naturalWidth)
+    : 810;
   const margin = 72;
   const gap = 36;
   const footerHeight = options.date ? 294 : 256;
